@@ -4,18 +4,24 @@
   "description": "Realtime-Chat backend using socket.io and mongodb",
   "license": "MIT",
   "author": "shangesh-tech",
-  "type": "commonjs",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "dependencies": {
     "@auth/express": "^0.11.0",
+    "@auth/mongodb-adapter": "^3.10.0",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "mongodb": "^6.17.0",
     "mongoose": "^8.16.4",
     "socket.io": "^4.8.1"
   },
