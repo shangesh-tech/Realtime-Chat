@@ -61,7 +61,7 @@ export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat
                     <span>Settings</span>
                   </button>
                   <div className="border-t border-gray-100 my-1"></div>
-                  <button className="text-black w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-red-600">
+                  <button className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-red-600">
                     <LogOut className="h-4 w-4" />
                     <span>Sign Out</span>
                   </button>
