@@ -1,30 +1,77 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MessageCircle, Eye, EyeOff } from "lucide-react"
+import { useState } from "react";
+import { MessageCircle, Eye, EyeOff } from "lucide-react";
 
 export function LoginScreen({ onLogin, onSwitchToSignup }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
-    // Simulate login
-    setTimeout(() => {
+    try {
+      // After successful registration:
+      const csrfRes = await fetch("http://localhost:3000/auth/csrf", {
+        credentials: "include",
+      });
+      const { csrfToken } = await csrfRes.json();
+
+      const loginResponse = await fetch(
+        "http://localhost:3000/auth/callback/credentials",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            csrfToken,
+            email: email,
+            password: password,
+          }),
+          credentials: "include",
+        }
+      );
+
+      if (!loginResponse.ok) {
+        const errorData = await loginResponse.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+
+      // Get session data after successful login
+      const sessionResponse = await fetch(
+        "http://localhost:3000/auth/session",
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!sessionResponse.ok) {
+        throw new Error("Failed to get session data");
+      }
+
+      const session = await sessionResponse.json();
+
+      // Call the onLogin callback with user data
       onLogin({
-        id: "1",
-        name: "John Doe",
-        email,
-        avatar: "/placeholder.svg?height=40&width=40",
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        avatar: session.user.image || "/placeholder.svg?height=40&width=40",
         status: "online",
-      })
-      setIsLoading(false)
-    }, 1000)
-  }
+      });
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(
+        err.message || "Failed to login. Please check your credentials."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center gradient-bg p-4">
@@ -39,12 +86,22 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
           <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Welcome Back
           </h2>
-          <p className="text-gray-600 text-lg">Sign in to continue your conversations</p>
+          <p className="text-gray-600 text-lg">
+            Sign in to continue your conversations
+          </p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 px-6">
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-semibold text-gray-700 block">
+              <label
+                htmlFor="email"
+                className="text-sm font-semibold text-gray-700 block"
+              >
                 Email Address
               </label>
               <input
@@ -58,7 +115,10 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-semibold text-gray-700 block">
+              <label
+                htmlFor="password"
+                className="text-sm font-semibold text-gray-700 block"
+              >
                 Password
               </label>
               <div className="relative">
@@ -76,7 +136,11 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -110,5 +174,5 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
         </form>
       </div>
     </div>
-  )
+  );
 }

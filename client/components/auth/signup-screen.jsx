@@ -14,11 +14,15 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
+  const [apiError, setApiError] = useState("")
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+    if (apiError) {
+      setApiError("")
     }
   }
 
@@ -40,24 +44,83 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!validateForm()) return
-
-    setIsLoading(true)
-
-    // Simulate signup
-    setTimeout(() => {
+    e.preventDefault();
+  
+    if (!validateForm()) return;
+  
+    setIsLoading(true);
+    setApiError("");
+  
+    try {
+      // 1. Registration
+      const response = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }),
+        credentials: 'include', // make sure to always send cookies!
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+  
+      // 2. FETCH CSRF Token just before login
+      const csrfRes = await fetch('http://localhost:3000/auth/csrf', {
+        credentials: 'include',
+      });
+      const { csrfToken } = await csrfRes.json();
+  
+      // 3. Login (include CSRF!)
+      const loginResponse = await fetch('http://localhost:3000/auth/callback/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          csrfToken,        // <- Auth.js requires this!
+          email: formData.email,
+          password: formData.password,
+        }),
+        credentials: 'include'
+      });
+  
+      if (!loginResponse.ok) {
+        // If login fails after registration, redirect to login
+        onSwitchToLogin();
+        return;
+      }
+  
+      // 4. Get session data after successful login
+      const sessionResponse = await fetch('http://localhost:3000/auth/session', {
+        credentials: 'include'
+      });
+  
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to get session data');
+      }
+  
+      const session = await sessionResponse.json();
+  
+      // Call the onSignup callback with user data
       onSignup({
-        id: "1",
-        name: formData.name,
-        email: formData.email,
-        avatar: "/placeholder.svg?height=40&width=40",
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        avatar: session.user.image || "/placeholder.svg?height=40&width=40",
         status: "online",
-      })
-      setIsLoading(false)
-    }, 1000)
-  }
+      });
+    } catch (err) {
+      console.error('Registration error:', err);
+      setApiError(err.message || 'Failed to register. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   const hasMinLength = formData.password.length >= 8
   const hasUpperCase = /[A-Z]/.test(formData.password)
@@ -82,6 +145,11 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="space-y-5 px-6">
+            {apiError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                {apiError}
+              </div>
+            )}
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-semibold text-gray-700 block">
                 Full Name
