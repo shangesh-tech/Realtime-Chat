@@ -53,7 +53,7 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 px-4 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-200 w-full outline-none"
+                className="text-black h-12 px-4 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-200 w-full outline-none"
                 required
               />
             </div>
@@ -68,7 +68,7 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 px-4 pr-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-200 w-full outline-none"
+                  className="text-black h-12 px-4 pr-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-200 w-full outline-none"
                   required
                 />
                 <button
