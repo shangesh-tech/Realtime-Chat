@@ -22,13 +22,15 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
     }
   }
 
-  const validateForm = () => {
+  const validateForm = () => {  
     const newErrors = {}
 
     if (!formData.name.trim()) newErrors.name = "Name is required"
     if (!formData.email.trim()) newErrors.email = "Email is required"
     if (!formData.password) newErrors.password = "Password is required"
-    if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
+    if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters"
+    if (!/[A-Z]/.test(formData.password)) newErrors.password = "Password must contain an uppercase letter"
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) newErrors.password = "Password must contain a symbol"
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match"
     }
@@ -57,7 +59,11 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
     }, 1000)
   }
 
-  const passwordStrength = formData.password.length >= 6
+  const hasMinLength = formData.password.length >= 8
+  const hasUpperCase = /[A-Z]/.test(formData.password)
+  const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+  const passwordStrength = hasMinLength && hasUpperCase && hasSymbol
+  const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== ""
 
   return (
     <div className="min-h-screen flex items-center justify-center gradient-bg p-4">
@@ -86,7 +92,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                className={`h-12 px-4 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
+                className={`text-black h-12 px-4 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
                   errors.name ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-blue-500"
                 }`}
                 required
@@ -109,7 +115,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                className={`h-12 px-4 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
+                className={`text-black h-12 px-4 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
                   errors.email ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-blue-500"
                 }`}
                 required
@@ -133,7 +139,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
-                  className={`h-12 px-4 pr-12 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
+                  className={`text-black h-12 px-4 pr-12 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
                     errors.password ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-blue-500"
                   }`}
                   required
@@ -147,11 +153,19 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                 </button>
               </div>
               {formData.password && (
-                <div
-                  className={`flex items-center space-x-1 text-sm ${passwordStrength ? "text-green-500" : "text-red-500"}`}
-                >
-                  {passwordStrength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                  <span>{passwordStrength ? "Strong password" : "Password too short"}</span>
+                <div className="space-y-1 mt-1">
+                  <div className={`flex items-center space-x-1 text-sm ${hasMinLength ? "text-green-500" : "text-red-500"}`}>
+                    {hasMinLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center space-x-1 text-sm ${hasUpperCase ? "text-green-500" : "text-red-500"}`}>
+                    {hasUpperCase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    <span>Contains uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center space-x-1 text-sm ${hasSymbol ? "text-green-500" : "text-red-500"}`}>
+                    {hasSymbol ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    <span>Contains symbol</span>
+                  </div>
                 </div>
               )}
               {errors.password && (
@@ -173,7 +187,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                  className={`h-12 px-4 pr-12 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
+                  className={`text-black h-12 px-4 pr-12 border-2 rounded-xl transition-all duration-200 w-full focus:outline-none ${
                     errors.confirmPassword
                       ? "border-red-500 focus:border-red-500"
                       : "border-gray-200 focus:border-blue-500"
@@ -188,6 +202,12 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {formData.confirmPassword && (
+                <div className={`flex items-center space-x-1 text-sm ${passwordsMatch ? "text-green-500" : "text-red-500"}`}>
+                  {passwordsMatch ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>{passwordsMatch ? "Passwords match" : "Passwords do not match"}</span>
+                </div>
+              )}
               {errors.confirmPassword && (
                 <div className="flex items-center space-x-1 text-red-500 text-sm">
                   <X className="h-3 w-3" />
