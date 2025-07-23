@@ -2,8 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const API_URL = "http://localhost:8080";
-const BASE_URL = "http://localhost:8080";
+const API_URL = "https://realtime-chat-qa08.onrender.com";    
 
 const useAuthStore = create((set, get) => ({
   authUser: null,

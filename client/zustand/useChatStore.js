@@ -13,7 +13,7 @@ export const useChatStore = create((set, get) => ({
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
-      const res = await fetch("http://localhost:8080/api/message/users", { credentials: 'include' });
+      const res = await fetch("https://realtime-chat-qa08.onrender.com/api/message/users", { credentials: 'include' });
       if (!res.ok) throw new Error((await res.json()).error || "Failed to fetch users");
       const data = await res.json();
       set({ users: data });
@@ -27,7 +27,7 @@ export const useChatStore = create((set, get) => ({
   getMessages: async (userId) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await fetch(`http://localhost:8080/api/message/${userId}`, { credentials: 'include' });
+      const res = await fetch(`https://realtime-chat-qa08.onrender.com/api/message/${userId}`, { credentials: 'include' });
       if (!res.ok) throw new Error((await res.json()).error || "Failed to fetch messages");
       const data = await res.json();
       set({ messages: data.map(msg => ({ ...msg, type: msg.senderId === useAuthStore.getState().authUser.id ? 'sent' : 'received' })) });
@@ -49,7 +49,7 @@ export const useChatStore = create((set, get) => ({
         console.error("Cannot send message: No selected user");
         return;
       }
-      const res = await fetch(`http://localhost:8080/api/message/send/${selectedUser._id}`, {
+      const res = await fetch(`https://realtime-chat-qa08.onrender.com/api/message/send/${selectedUser._id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(messageData),

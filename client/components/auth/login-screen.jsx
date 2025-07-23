@@ -17,7 +17,7 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
 
     try {
       // Get CSRF token
-      const csrfRes = await fetch("http://localhost:8080/auth/csrf", {
+      const csrfRes = await fetch("https://realtime-chat-qa08.onrender.com/auth/csrf", {
         credentials: "include",
       });
       
@@ -37,7 +37,7 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
 
       // Perform login
       const loginResponse = await fetch(
-        "http://localhost:8080/auth/callback/credentials",
+        "https://realtime-chat-qa08.onrender.com/auth/callback/credentials",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -62,7 +62,7 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
 
       // Get session
       const sessionResponse = await fetch(
-        "http://localhost:8080/auth/session",
+        "https://realtime-chat-qa08.onrender.com/auth/session",
         {
           credentials: "include",
         }
