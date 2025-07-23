@@ -73,19 +73,50 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
       // 2. FETCH CSRF Token just before login
       const csrfRes = await fetch('https://realtime-chat-qa08.onrender.com/auth/csrf', {
         credentials: 'include',
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        cache: "no-store"
       });
-      const { csrfToken } = await csrfRes.json();
+      
+      if (!csrfRes.ok) {
+        console.error("CSRF fetch failed:", csrfRes.status);
+        throw new Error("Authentication error");
+      }
+      
+      let csrfData;
+      try {
+        csrfData = await csrfRes.json();
+      } catch (e) {
+        console.error("Invalid CSRF JSON:", e);
+        throw new Error("Server returned invalid response");
+      }
+      
+      const csrfToken = csrfData.csrfToken;
+      
+      if (!csrfToken) {
+        console.error("No CSRF token in response");
+        throw new Error("Authentication error: Missing security token");
+      }
   
       // 3. Login (include CSRF!)
       const loginResponse = await fetch('https://realtime-chat-qa08.onrender.com/auth/callback/credentials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
         body: new URLSearchParams({
           csrfToken,        // <- Auth.js requires this!
           email: formData.email,
           password: formData.password,
+          redirect: "false" // Important: prevent redirect
         }),
-        credentials: 'include'
+        credentials: 'include',
+        cache: "no-store",
+        redirect: "follow"
       });
   
       if (!loginResponse.ok) {
@@ -95,15 +126,27 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
       }
   
       // 4. Get session data after successful login
-      const sessionResponse = await fetch('https://realtime-chat-qa08.onrender.com/auth/session', {
-        credentials: 'include'
+      const sessionResponse = await fetch('https://realtime-chat-qa08.onrender.com/api/auth/session', {
+        credentials: 'include',
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        cache: "no-store"
       });
   
       if (!sessionResponse.ok) {
-        throw new Error('Failed to get session data');
+        console.error("Session fetch failed:", sessionResponse.status);
+        throw new Error('Authentication failed');
       }
   
-      const session = await sessionResponse.json();
+      let session;
+      try {
+        session = await sessionResponse.json();
+      } catch (e) {
+        console.error("Error parsing session response:", e);
+        throw new Error("Invalid response from server");
+      }
   
       // Call the onSignup callback with user data
       onSignup({

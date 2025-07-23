@@ -14,8 +14,13 @@ const useAuthStore = create((set, get) => ({
   checkAuth: async () => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_URL}/auth/session`, {
+      const res = await fetch(`${API_URL}/api/auth/session`, {
         credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        cache: "no-store"
       });
       if (!res.ok) throw new Error("No user session");
       const data = await res.json();
@@ -27,6 +32,7 @@ const useAuthStore = create((set, get) => ({
         set({ authUser: null, isLoading: false });
       }
     } catch (err) {
+      console.error("Session check error:", err);
       set({ authUser: null, isLoading: false });
     }
   },

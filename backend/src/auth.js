@@ -9,6 +9,12 @@ import mongoose from "mongoose";
 
 await connectDB();
 
+// Custom CSRF handler to avoid redirect loops
+export const generateCsrfToken = () => {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+};
+
 export const authConfig = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
@@ -71,6 +77,7 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
+  useSecureCookies: process.env.NODE_ENV === "production",
   callbacks: {
     async jwt({ token, user }) {
       // Include user info in JWT token
@@ -107,7 +114,28 @@ export const authConfig = {
   trustHost: true,
   // Force HTTPS for all Auth.js URLs
   baseUrl: "https://realtime-chat-qa08.onrender.com",
-  url: "https://realtime-chat-qa08.onrender.com",
+  // Remove the url parameter as it might be causing the redirect loop
+  cookies: {
+    // Prevent CSRF issues by setting secure cookies
+    csrfToken: {
+      name: 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true
+      }
+    },
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true
+      }
+    }
+  }
 };
 
 // Export the configured ExpressAuth function

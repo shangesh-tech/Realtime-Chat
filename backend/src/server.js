@@ -11,6 +11,7 @@ import expressAuth from "./auth.js";
 import messageRoutes from "./routes/message.route.js";
 import http from "http";
 import { setupSocket } from "./lib/socket.js";
+import fetch from "node-fetch";
 
 const app = express();
 
@@ -21,14 +22,7 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 setupSocket(server);
 
-// HTTP to HTTPS redirect middleware
-app.use((req, res, next) => {
-  if (process.env.NODE_ENV === "production" && !req.secure && req.headers["x-forwarded-proto"] !== "https") {
-    // Redirect to HTTPS
-    return res.redirect(`https://${req.hostname}${req.url}`);
-  }
-  next();
-});
+// We don't need HTTP to HTTPS redirect as Render handles this
 
 // Security middleware
 app.use(
@@ -81,8 +75,48 @@ app.use(globalLimiter);
 // Route logger for development mode
 app.use(routeLogger);
 
+// Custom CSRF endpoint to avoid redirect loops
+app.get("/auth/csrf", (req, res) => {
+  const csrfToken = Math.random().toString(36).substring(2, 15) + 
+                    Math.random().toString(36).substring(2, 15);
+  
+  // Set CSRF cookie
+  res.cookie("next-auth.csrf-token", csrfToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/"
+  });
+  
+  // Return CSRF token
+  res.json({ csrfToken });
+});
+
 // Auth.js routes - handles /auth/signin, /auth/signout, /auth/session, etc.
 app.use("/auth", expressAuth);
+
+// Custom session endpoint to avoid redirect loops
+app.get("/api/auth/session", async (req, res) => {
+  try {
+    // Get session from Auth.js
+    const sessionResponse = await fetch(`${req.protocol}://${req.get('host')}/auth/session`, {
+      headers: {
+        cookie: req.headers.cookie || "",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    
+    if (!sessionResponse.ok) {
+      return res.status(401).json({ error: "No active session" });
+    }
+    
+    const session = await sessionResponse.json();
+    res.json(session);
+  } catch (error) {
+    console.error("Session error:", error);
+    res.status(500).json({ error: "Failed to get session" });
+  }
+});
 
 // Custom authentication routes
 app.use("/api/auth", authRoutes);

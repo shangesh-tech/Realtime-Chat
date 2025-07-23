@@ -19,20 +19,32 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
       // Get CSRF token
       const csrfRes = await fetch("https://realtime-chat-qa08.onrender.com/auth/csrf", {
         credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        cache: "no-store"
       });
       
       if (!csrfRes.ok) {
         const text = await csrfRes.text();
-        throw new Error(`CSRF fetch failed: ${csrfRes.status} - ${text}`);
+        console.error("CSRF fetch failed:", csrfRes.status, text);
+        throw new Error(`Authentication error: ${csrfRes.status}`);
       }
       
-      const csrfData = await csrfRes.json().catch(() => {
-        throw new Error("Invalid CSRF response - not JSON");
-      });
+      let csrfData;
+      try {
+        csrfData = await csrfRes.json();
+      } catch (e) {
+        console.error("Invalid CSRF JSON:", e);
+        throw new Error("Server returned invalid response");
+      }
+      
       const csrfToken = csrfData.csrfToken;
 
       if (!csrfToken) {
-        throw new Error("No CSRF token received");
+        console.error("No CSRF token in response:", csrfData);
+        throw new Error("Authentication error: Missing security token");
       }
 
       // Perform login
@@ -40,42 +52,64 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
         "https://realtime-chat-qa08.onrender.com/auth/callback/credentials",
         {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: { 
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+          },
           body: new URLSearchParams({
             csrfToken,
             email,
             password,
+            redirect: "false" // Important: prevent redirect
           }),
           credentials: "include",
+          cache: "no-store",
+          redirect: "follow"
         }
       );
 
       if (!loginResponse.ok) {
+        console.error("Login failed:", loginResponse.status);
         const errorText = await loginResponse.text();
-        let errorMessage = errorText;
+        console.error("Login error response:", errorText);
+        let errorMessage = "Login failed";
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.message || "Login failed";
-        } catch {}
+        } catch (e) {
+          console.error("Error parsing login error:", e);
+        }
         throw new Error(errorMessage);
       }
 
       // Get session
       const sessionResponse = await fetch(
-        "https://realtime-chat-qa08.onrender.com/auth/session",
+        "https://realtime-chat-qa08.onrender.com/api/auth/session",
         {
           credentials: "include",
+          headers: {
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          cache: "no-store"
         }
       );
 
       if (!sessionResponse.ok) {
+        console.error("Session fetch failed:", sessionResponse.status);
         const text = await sessionResponse.text();
-        throw new Error(`Session fetch failed: ${sessionResponse.status} - ${text}`);
+        console.error("Session error response:", text);
+        throw new Error(`Authentication failed`);
       }
 
-      const session = await sessionResponse.json().catch(() => {
-        throw new Error("Invalid session response - not JSON");
-      });
+      let session;
+      try {
+        session = await sessionResponse.json();
+      } catch (e) {
+        console.error("Error parsing session response:", e);
+        throw new Error("Invalid response from server");
+      }
 
       if (!session?.user) {
         throw new Error("No user data in session");
