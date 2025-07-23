@@ -105,6 +105,9 @@ export const authConfig = {
   },
   debug: process.env.NODE_ENV === 'development',
   trustHost: true,
+  // Force HTTPS for all Auth.js URLs
+  baseUrl: "https://realtime-chat-qa08.onrender.com",
+  url: "https://realtime-chat-qa08.onrender.com",
 };
 
 // Export the configured ExpressAuth function

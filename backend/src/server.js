@@ -21,6 +21,15 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 setupSocket(server);
 
+// HTTP to HTTPS redirect middleware
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "production" && !req.secure && req.headers["x-forwarded-proto"] !== "https") {
+    // Redirect to HTTPS
+    return res.redirect(`https://${req.hostname}${req.url}`);
+  }
+  next();
+});
+
 // Security middleware
 app.use(
   helmet({
