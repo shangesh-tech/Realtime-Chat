@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { connectDB } from './lib/db.js';
-import { routeLogger } from './lib/authMiddleware.js';
+import { routeLogger } from './middleware/auth.middleware.js';
 import authRoutes from './routes/auth.route.js';
 import protectedRoutes from './routes/protected.route.js';
 import expressAuth from './auth.js';

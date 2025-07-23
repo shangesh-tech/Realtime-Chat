@@ -2,7 +2,7 @@ import { ExpressAuth } from "@auth/express";
 import Credentials from "@auth/express/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "./lib/db.js";
-import User from "./models/User.js";
+import User from "./models/user.model.js";
 import { connectDB } from "./lib/db.js";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
