@@ -6,61 +6,22 @@ import { ChatWindow } from "./chat-window"
 import { NewChatModal } from "./new-chat-modal"
 import { CreateGroupModal } from "./create-group-modal"
 import { useMobile } from "@/hooks/use-mobile"
+import { useChatStore } from '@/zustand/useChatStore';
+import { useEffect } from 'react';
 
 export function MainChatLayout({ user }) {
-  const [selectedChat, setSelectedChat] = useState(null)
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
   const isMobile = useMobile()
 
-  // Mock chat data
-  const [chats] = useState([
-    {
-      id: "1",
-      name: "Alice Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Hey! How are you doing?",
-      timestamp: "2:30 PM",
-      unread: 2,
-      type: "direct",
-    },
-    {
-      id: "2",
-      name: "Design Team",
-      avatar: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Alice: The new mockups are ready for review",
-      timestamp: "1:45 PM",
-      unread: 5,
-      type: "group",
-    },
-    {
-      id: "3",
-      name: "Bob Smith",
-      avatar: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Thanks for the help with the project!",
-      timestamp: "12:15 PM",
-      unread: 0,
-      type: "direct",
-    },
-    {
-      id: "4",
-      name: "Marketing Team",
-      avatar: "/placeholder.svg?height=40&width=40",
-      lastMessage: "Sarah: Campaign results are looking great!",
-      timestamp: "11:30 AM",
-      unread: 3,
-      type: "group",
-    },
-    {
-      id: "5",
-      name: "Emma Wilson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      lastMessage: "See you at the meeting tomorrow",
-      timestamp: "Yesterday",
-      unread: 0,
-      type: "direct",
-    },
-  ])
+  const users = useChatStore((state) => state.users);
+  const getUsers = useChatStore((state) => state.getUsers);
+  const selectedUser = useChatStore((state) => state.selectedUser);
+  const setSelectedUser = useChatStore((state) => state.setSelectedUser);
+
+  useEffect(() => {
+    getUsers();
+  }, []);
 
   const handleNewChat = () => {
     setShowNewChatModal(true)
@@ -70,12 +31,12 @@ export function MainChatLayout({ user }) {
     setShowCreateGroupModal(true)
   }
 
-  const handleSelectChat = (chat) => {
-    setSelectedChat(chat)
+  const handleSelectChat = (user) => {
+    setSelectedUser(user)
   }
 
   const handleBackToChats = () => {
-    setSelectedChat(null)
+    setSelectedUser(null)
   }
 
   return (
@@ -85,15 +46,15 @@ export function MainChatLayout({ user }) {
         className={`${
           isMobile
             ? `fixed inset-0 bg-white z-30 transition-transform duration-300 ease-in-out ${
-                selectedChat ? "translate-x-[-100%]" : "translate-x-0"
+                selectedUser ? "translate-x-[-100%]" : "translate-x-0"
               }`
             : "relative flex-shrink-0"
         }`}
       >
         <ChatSidebar
           user={user}
-          chats={chats}
-          selectedChat={selectedChat}
+          chats={users.map(user => ({ ...user, type: 'direct', lastMessage: '', timestamp: '', unread: 0 }))}
+          selectedChat={selectedUser}
           onSelectChat={handleSelectChat}
           onNewChat={handleNewChat}
           onCreateGroup={handleCreateGroup}
@@ -105,13 +66,13 @@ export function MainChatLayout({ user }) {
         className={`flex-1 flex flex-col min-w-0 relative ${
           isMobile
             ? `fixed inset-0 bg-white z-30 transition-transform duration-300 ease-in-out ${
-                selectedChat ? "translate-x-0" : "translate-x-[100%]"
+                selectedUser ? "translate-x-0" : "translate-x-[100%]"
               }`
             : ""
         }`}
       >
         <ChatWindow
-          selectedChat={selectedChat}
+          selectedChat={selectedUser}
           currentUser={user}
           onBackClick={isMobile ? handleBackToChats : undefined}
         />
@@ -122,7 +83,7 @@ export function MainChatLayout({ user }) {
         open={showNewChatModal}
         onOpenChange={setShowNewChatModal}
         onSelectContact={(contact) => {
-          setSelectedChat(contact)
+          setSelectedUser(contact)
           setShowNewChatModal(false)
         }}
       />
@@ -131,7 +92,7 @@ export function MainChatLayout({ user }) {
         open={showCreateGroupModal}
         onOpenChange={setShowCreateGroupModal}
         onCreateGroup={(group) => {
-          setSelectedChat(group)
+          setSelectedUser(group)
           setShowCreateGroupModal(false)
         }}
       />

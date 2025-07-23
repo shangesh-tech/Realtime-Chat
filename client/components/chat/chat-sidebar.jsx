@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Search, MessageCircle, Users, MoreVertical, User, Settings, LogOut } from "lucide-react"
+import { useChatStore } from '@/zustand/useChatStore';
 
 
 export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat, onCreateGroup }) {
@@ -20,6 +21,8 @@ export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat
   const getChatTypeLabel = (chat) => {
     return chat.type === "group" ? "Group" : "Direct"
   }
+
+  const isUserOnline = useChatStore((state) => state.isUserOnline);
 
   return (
     <div className="w-full md:w-80 h-full bg-white flex flex-col">
@@ -110,7 +113,7 @@ export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat
         <div className="divide-y divide-gray-100">
           {filteredChats.map((chat) => (
             <button
-              key={chat.id}
+              key={chat._id}
               onClick={() => onSelectChat(chat)}
               className={`w-full p-3 md:p-4 transition-colors duration-200 ${
                 selectedChat?.id === chat.id ? "bg-blue-50" : "hover:bg-gray-50"
@@ -132,6 +135,13 @@ export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat
                     />
                   </div>
                   <div className="absolute -top-1 -right-1">{getChatIcon(chat)}</div>
+                  
+                  {/* Add online status indicator */}
+                  {chat.type === 'direct' && (
+                    <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
+                      isUserOnline(chat._id) ? 'bg-green-500' : 'bg-gray-400'
+                    }`}></div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between">
@@ -145,7 +155,9 @@ export function ChatSidebar({ user, chats, selectedChat, onSelectChat, onNewChat
                     <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{chat.timestamp}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs md:text-sm text-gray-600 truncate pr-2">{chat.lastMessage}</p>
+                    <p className="text-xs md:text-sm text-gray-600 truncate pr-2">
+                      {chat.type === 'direct' && isUserOnline(chat._id) ? 'Online' : chat.lastMessage || 'Start a conversation'}
+                    </p>
                     {chat.unread > 0 && (
                       <div className="bg-purple-500 h-5 w-5 md:h-6 md:w-6 p-0 flex items-center justify-center text-xs flex-shrink-0 text-white rounded-full">
                         {chat.unread}

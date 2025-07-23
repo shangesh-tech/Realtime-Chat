@@ -16,58 +16,82 @@ export function LoginScreen({ onLogin, onSwitchToSignup }) {
     setError("");
 
     try {
-      // After successful registration:
-      const csrfRes = await fetch("http://localhost:3000/auth/csrf", {
+      // Get CSRF token
+      const csrfRes = await fetch("http://localhost:8080/auth/csrf", {
         credentials: "include",
       });
-      const { csrfToken } = await csrfRes.json();
+      
+      if (!csrfRes.ok) {
+        const text = await csrfRes.text();
+        throw new Error(`CSRF fetch failed: ${csrfRes.status} - ${text}`);
+      }
+      
+      const csrfData = await csrfRes.json().catch(() => {
+        throw new Error("Invalid CSRF response - not JSON");
+      });
+      const csrfToken = csrfData.csrfToken;
 
+      if (!csrfToken) {
+        throw new Error("No CSRF token received");
+      }
+
+      // Perform login
       const loginResponse = await fetch(
-        "http://localhost:3000/auth/callback/credentials",
+        "http://localhost:8080/auth/callback/credentials",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             csrfToken,
-            email: email,
-            password: password,
+            email,
+            password,
           }),
           credentials: "include",
         }
       );
 
       if (!loginResponse.ok) {
-        const errorData = await loginResponse.json();
-        throw new Error(errorData.message || "Login failed");
+        const errorText = await loginResponse.text();
+        let errorMessage = errorText;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || "Login failed";
+        } catch {}
+        throw new Error(errorMessage);
       }
 
-      // Get session data after successful login
+      // Get session
       const sessionResponse = await fetch(
-        "http://localhost:3000/auth/session",
+        "http://localhost:8080/auth/session",
         {
           credentials: "include",
         }
       );
 
       if (!sessionResponse.ok) {
-        throw new Error("Failed to get session data");
+        const text = await sessionResponse.text();
+        throw new Error(`Session fetch failed: ${sessionResponse.status} - ${text}`);
       }
 
-      const session = await sessionResponse.json();
+      const session = await sessionResponse.json().catch(() => {
+        throw new Error("Invalid session response - not JSON");
+      });
 
-      // Call the onLogin callback with user data
+      if (!session?.user) {
+        throw new Error("No user data in session");
+      }
+
+      // Call onLogin
       onLogin({
         id: session.user.id,
         name: session.user.name,
         email: session.user.email,
-        avatar: session.user.image || "/placeholder.svg?height=40&width=40",
+        avatar: "https://ui-avatars.com/api/?background=9370DB&color=fff&name=" + session.user.name,
         status: "online",
       });
     } catch (err) {
       console.error("Login error:", err);
-      setError(
-        err.message || "Failed to login. Please check your credentials."
-      );
+      setError(err.message || "Failed to login. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }

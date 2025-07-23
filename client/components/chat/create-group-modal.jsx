@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Camera, Search } from "lucide-react"
+import { useChatStore } from '@/zustand/useChatStore';
 
 export function CreateGroupModal({ open, onOpenChange, onCreateGroup }) {
   const [groupName, setGroupName] = useState("")
@@ -9,35 +10,9 @@ export function CreateGroupModal({ open, onOpenChange, onCreateGroup }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUsers, setSelectedUsers] = useState([])
 
-  // Mock users
-  const users = [
-    {
-      id: "4",
-      name: "Emma Wilson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "Online",
-    },
-    {
-      id: "5",
-      name: "Michael Brown",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "Last seen 2 hours ago",
-    },
-    {
-      id: "6",
-      name: "Sarah Davis",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "Online",
-    },
-    {
-      id: "7",
-      name: "David Miller",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "Last seen yesterday",
-    },
-  ]
+  const allUsers = useChatStore((state) => state.users);
 
-  const filteredUsers = users.filter((user) => user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredUsers = allUsers.filter((user) => user.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const handleUserToggle = (userId) => {
     setSelectedUsers((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]))

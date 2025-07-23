@@ -53,7 +53,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
   
     try {
       // 1. Registration
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -71,13 +71,13 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
       }
   
       // 2. FETCH CSRF Token just before login
-      const csrfRes = await fetch('http://localhost:3000/auth/csrf', {
+      const csrfRes = await fetch('http://localhost:8080/auth/csrf', {
         credentials: 'include',
       });
       const { csrfToken } = await csrfRes.json();
   
       // 3. Login (include CSRF!)
-      const loginResponse = await fetch('http://localhost:3000/auth/callback/credentials', {
+      const loginResponse = await fetch('http://localhost:8080/auth/callback/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -95,7 +95,7 @@ export function SignupScreen({ onSignup, onSwitchToLogin }) {
       }
   
       // 4. Get session data after successful login
-      const sessionResponse = await fetch('http://localhost:3000/auth/session', {
+      const sessionResponse = await fetch('http://localhost:8080/auth/session', {
         credentials: 'include'
       });
   

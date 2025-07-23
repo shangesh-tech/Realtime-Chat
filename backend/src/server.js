@@ -9,10 +9,17 @@ import authRoutes from "./routes/auth.route.js";
 import protectedRoutes from "./routes/protected.route.js";
 import expressAuth from "./auth.js";
 import messageRoutes from "./routes/message.route.js";
-import { app, server } from "./lib/socket.js";
+import http from "http";
+import { setupSocket } from "./lib/socket.js";
+
+const app = express();
+
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
+
+const server = http.createServer(app);
+setupSocket(server);
 
 // Security middleware
 app.use(

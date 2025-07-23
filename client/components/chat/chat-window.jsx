@@ -15,85 +15,45 @@ import {
   Check,
   ArrowLeft,
   Search,
+  X,
 } from "lucide-react"
+import { useChatStore } from '@/zustand/useChatStore';
+import useAuthStore from '@/zustand/useAuthStore';
 
 export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
   const [message, setMessage] = useState("")
-  const [messages, setMessages] = useState([])
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const fileInputRef = useRef(null)
   const messagesEndRef = useRef(null)
 
-  // Mock messages for selected chat
+  const messages = useChatStore((state) => state.messages);
+  const isMessagesLoading = useChatStore((state) => state.isMessagesLoading);
+  const getMessages = useChatStore((state) => state.getMessages);
+  const subscribeToMessages = useChatStore((state) => state.subscribeToMessages);
+  const unsubscribeFromMessages = useChatStore((state) => state.unsubscribeFromMessages);
+
   useEffect(() => {
     if (selectedChat) {
-      if (selectedChat.type === "group") {
-        setMessages([
-          {
-            id: "1",
-            text: "Hey everyone! How's the project going?",
-            sender: "2",
-            senderName: "Alice Johnson",
-            senderAvatar: "/placeholder.svg?height=32&width=32",
-            timestamp: "2:30 PM",
-            type: "received",
-            status: "read",
-          },
-          {
-            id: "2",
-            text: "I'm making good progress on the frontend. Should have it ready by tomorrow!",
-            sender: currentUser.id,
-            senderName: currentUser.name,
-            senderAvatar: currentUser.avatar,
-            timestamp: "2:32 PM",
-            type: "sent",
-            status: "read",
-          },
-          {
-            id: "3",
-            text: "Great! I've finished the API endpoints. Let me know if you need any changes.",
-            sender: "3",
-            senderName: "Bob Smith",
-            senderAvatar: "/placeholder.svg?height=32&width=32",
-            timestamp: "2:35 PM",
-            type: "received",
-            status: "delivered",
-          },
-        ])
-      } else {
-        setMessages([
-          {
-            id: "1",
-            text: "Hey! How are you doing?",
-            sender: selectedChat.id,
-            senderName: selectedChat.name,
-            senderAvatar: selectedChat.avatar,
-            timestamp: "2:30 PM",
-            type: "received",
-            status: "read",
-          },
-          {
-            id: "2",
-            text: "I'm doing great! Thanks for asking. How about you?",
-            sender: currentUser.id,
-            senderName: currentUser.name,
-            senderAvatar: currentUser.avatar,
-            timestamp: "2:32 PM",
-            type: "sent",
-            status: "read",
-          },
-          {
-            id: "3",
-            text: "Pretty good! Working on some exciting projects.",
-            sender: selectedChat.id,
-            senderName: selectedChat.name,
-            senderAvatar: selectedChat.avatar,
-            timestamp: "2:35 PM",
-            type: "received",
-            status: "delivered",
-          },
-        ])
-      }
+      getMessages(selectedChat._id);
+      subscribeToMessages();
     }
-  }, [selectedChat, currentUser.id, currentUser.name, currentUser.avatar])
+    return () => unsubscribeFromMessages();
+  }, [selectedChat]);
+
+  useEffect(() => {
+    const socket = useAuthStore.getState().socket;
+    if (socket && selectedChat) {
+      subscribeToMessages();
+      socket.on('connect_error', (err) => console.error('Socket connect error:', err));
+    }
+    return () => {
+      if (socket) {
+        unsubscribeFromMessages();
+        socket.off('connect_error');
+      }
+    };
+  }, [selectedChat, subscribeToMessages, unsubscribeFromMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -103,32 +63,79 @@ export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
     scrollToBottom()
   }, [messages])
 
-  const handleSendMessage = (e) => {
-    e.preventDefault()
-    if (!message.trim()) return
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
 
-    const newMessage = {
-      id: Date.now().toString(),
-      text: message,
-      sender: currentUser.id,
-      senderName: currentUser.name,
-      senderAvatar: currentUser.avatar,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      type: "sent",
-      status: "sending",
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size should not exceed 5MB')
+      return
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setMessage("")
+    setSelectedImage(file)
+    
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImagePreview(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
 
-    // Simulate message status updates
-    setTimeout(() => {
-      setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "sent" } : msg)))
-    }, 1000)
+  const handleFileButtonClick = () => {
+    fileInputRef.current.click()
+  }
 
-    setTimeout(() => {
-      setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg)))
-    }, 2000)
+  const clearSelectedImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    fileInputRef.current.value = ''
+  }
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if ((!message.trim() && !selectedImage) || !selectedChat) return;
+    
+    try {
+      const tempMessage = {
+        _id: 'temp-' + Date.now(),
+        text: message,
+        senderId: currentUser.id,
+        receiverId: selectedChat._id,
+        createdAt: new Date().toISOString(),
+        type: 'sent',
+        status: 'sending',
+        image: imagePreview  // Include the image preview
+      };
+      
+      useChatStore.getState().addTempMessage(tempMessage);
+      
+      // Create message data with image
+      const messageData = {
+        text: message
+      }
+      
+      // If there's a selected image, add it to the message data
+      if (selectedImage) {
+        const reader = new FileReader()
+        reader.readAsDataURL(selectedImage)
+        reader.onload = () => {
+          // Send message with image data
+          useChatStore.getState().sendMessage({
+            ...messageData,
+            image: reader.result
+          })
+        }
+      } else {
+        // Send message without image
+        useChatStore.getState().sendMessage(messageData)
+      }
+      
+      // Clear fields
+      setMessage("")
+      clearSelectedImage()
+    } catch (error) {
+      console.error("Error in handleSendMessage:", error)
+    }
   }
 
   const getStatusIcon = (status) => {
@@ -225,54 +232,74 @@ export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 chat-bg custom-scrollbar">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex message-enter ${msg.type === "sent" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`flex items-end space-x-2 max-w-[80%] md:max-w-[70%] ${
-                msg.type === "sent" ? "flex-row-reverse space-x-reverse" : ""
-              }`}
-            >
-              {msg.type === "received" && selectedChat?.type === "group" && (
-                <div className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0 rounded-full overflow-hidden">
-                  <img 
-                    src={msg.senderAvatar || "https://avatar.iran.liara.run/public"} 
-                    alt={msg.senderName}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.target.src = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 24 24' fill='%23718096' opacity='0.8'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' font-weight='bold'>${msg.senderName.charAt(0)}</text></svg>`;
-                    }}
-                  />
-                </div>
-              )}
+        {isMessagesLoading ? (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-500 mt-4">Loading messages...</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No messages yet. Start a conversation!</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg._id || msg.id} className={`flex message-enter ${msg.type === 'sent' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`px-3 py-2 md:px-4 md:py-3 rounded-2xl shadow-sm ${
-                  msg.type === "sent"
-                    ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-br-none"     
-                    : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
+                className={`flex items-end space-x-2 max-w-[80%] md:max-w-[70%] ${
+                  msg.type === "sent" ? "flex-row-reverse space-x-reverse" : ""
                 }`}
               >
                 {msg.type === "received" && selectedChat?.type === "group" && (
-                  <div className="flex items-center space-x-1 mb-1">
-                    <p className="text-xs font-semibold text-purple-600">{msg.senderName}</p>
-                    {msg.senderName === "Alice Johnson" && <Crown className="h-3 w-3 text-yellow-500" />}
-                    {msg.senderName === "Bob Smith" && <Shield className="h-3 w-3 text-green-500" />}
+                  <div className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0 rounded-full overflow-hidden">
+                    <img 
+                      src={msg.senderAvatar || "https://avatar.iran.liara.run/public"} 
+                      alt={msg.senderName}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.target.src = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 24 24' fill='%23718096' opacity='0.8'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' font-weight='bold'>${msg.senderName.charAt(0)}</text></svg>`;
+                      }}
+                    />
                   </div>
                 )}
-                <p className="text-sm md:text-base leading-relaxed break-words">{msg.text}</p>
                 <div
-                  className={`flex items-center justify-between mt-1 md:mt-2 ${
-                    msg.type === "sent" ? "flex-row-reverse" : ""
+                  className={`px-3 py-2 md:px-4 md:py-3 rounded-2xl shadow-sm ${
+                    msg.type === "sent"
+                      ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-br-none"     
+                      : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
                   }`}
                 >
-                  <p className={`text-[10px] md:text-xs ${msg.type === "sent" ? "text-purple-100" : "text-gray-500"}`}>
-                    {msg.timestamp}
-                  </p>
-                  {msg.type === "sent" && <div className="ml-1 md:ml-2">{getStatusIcon(msg.status)}</div>}
+                  {msg.image && (
+                    <div className="mb-2">
+                      <img 
+                        src={msg.image} 
+                        alt="Attached" 
+                        className="max-h-60 rounded-lg" 
+                      />
+                    </div>
+                  )}
+                  {msg.type === "received" && selectedChat?.type === "group" && (
+                    <div className="flex items-center space-x-1 mb-1">
+                      <p className="text-xs font-semibold text-purple-600">{msg.senderName}</p>
+                      {msg.senderName === "Alice Johnson" && <Crown className="h-3 w-3 text-yellow-500" />}
+                      {msg.senderName === "Bob Smith" && <Shield className="h-3 w-3 text-green-500" />}
+                    </div>
+                  )}
+                  <p className="text-sm md:text-base leading-relaxed break-words">{msg.text}</p>
+                  <div
+                    className={`flex items-center justify-between mt-1 md:mt-2 ${
+                      msg.type === "sent" ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <p className={`text-[10px] md:text-xs ${msg.type === "sent" ? "text-purple-100" : "text-gray-500"}`}>
+                      {msg.timestamp}
+                    </p>
+                    {msg.type === "sent" && <div className="ml-1 md:ml-2">{getStatusIcon(msg.status)}</div>}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -281,10 +308,18 @@ export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
         <form onSubmit={handleSendMessage} className="flex items-end space-x-2">
           <button
             type="button"
+            onClick={handleFileButtonClick}
             className="h-10 w-10 md:h-12 md:w-12 text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex-shrink-0 rounded-full flex items-center justify-center"
           >
             <Paperclip className="h-5 w-5 md:h-6 md:w-6" />
           </button>
+          <input 
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <div className="flex-1 relative">
             <input
               value={message}
@@ -292,6 +327,23 @@ export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
               placeholder="Type a message..."
               className="w-full pr-12 py-2.5 md:py-3 h-10 md:h-12 rounded-full border-2 border-gray-200 focus:border-purple-400 focus:ring-purple-400 shadow-sm text-sm md:text-base px-4 focus:outline-none text-black placeholder:text-black"
             />
+            {imagePreview && (
+              <div className="absolute bottom-full left-0 p-2 bg-gray-100 rounded-lg mb-2">
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Selected" 
+                    className="h-24 rounded-lg" 
+                  />
+                  <button
+                    onClick={clearSelectedImage}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 h-6 w-6 flex items-center justify-center"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
             <button
               type="button"
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 md:h-8 md:w-8 text-gray-500 hover:text-gray-700 rounded-full flex items-center justify-center"
@@ -301,7 +353,7 @@ export function ChatWindow({ selectedChat, currentUser, onBackClick }) {
           </div>
           <button
             type="submit"
-            disabled={!message.trim()}
+            disabled={!message.trim() || isMessagesLoading}
             className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 flex-shrink-0 shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center"
           >
             <Send className="h-5 w-5 md:h-6 md:w-6 text-white" />

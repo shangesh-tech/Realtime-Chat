@@ -2,43 +2,14 @@
 
 import { useState } from "react"
 import { Search } from "lucide-react"
+import { useChatStore } from '@/zustand/useChatStore';
 
 export function NewChatModal({ open, onOpenChange, onSelectContact }) {
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Mock contacts
-  const contacts = [
-    {
-      id: "4",
-      name: "Emma Wilson",
-      avatar: "https://avatar.iran.liara.run/public",
-      status: "Online",
-      type: "direct",
-    },
-    {
-      id: "5",
-      name: "Michael Brown",
-      avatar: "https://avatar.iran.liara.run/public",
-      status: "Last seen 2 hours ago",
-      type: "direct",
-    },
-    {
-      id: "6",
-      name: "Sarah Davis",
-      avatar: "https://avatar.iran.liara.run/public",
-      status: "Online",
-      type: "direct",
-    },
-    {
-      id: "7",
-      name: "David Miller",
-      avatar: "https://avatar.iran.liara.run/public",
-      status: "Last seen yesterday",
-      type: "direct",
-    },
-  ]
+  const users = useChatStore((state) => state.users);
 
-  const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredContacts = users.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const handleSelectContact = (contact) => {
     onSelectContact({
