@@ -42,17 +42,17 @@ app.use(
 app.set("trust proxy", process.env.NODE_ENV === "production");
 
 // CORS configuration
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? ["https://realtime-chat-coral-eight.vercel.app"]
-        : ["http://localhost:3000", "http://localhost:3001", "https://realtime-chat-coral-eight.vercel.app"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  })
-);
+// app.use(
+//   cors({
+//     origin:
+//       process.env.NODE_ENV === "production"
+//         ? ["https://realtime-chat-coral-eight.vercel.app"]
+//         : ["http://localhost:3000", "http://localhost:3001", "https://realtime-chat-coral-eight.vercel.app"],
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+//   })
+// );
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
