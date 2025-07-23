@@ -7,7 +7,7 @@ let io;
 export function setupSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:3000", "http://localhost:3001"],
+      origin: ["http://localhost:3000", "http://localhost:3001","https://realtime-chat-coral-eight.vercel.app"],
       methods: ["GET", "POST"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true

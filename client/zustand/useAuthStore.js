@@ -66,7 +66,7 @@ const useAuthStore = create((set, get) => ({
     if (!authUser) return;
 
     try {
-      const socket = io('http://localhost:8080', {
+      const socket = io('https://realtime-chat-qa08.onrender.com', {
         query: { userId: authUser.id },
         transports: ['websocket', 'polling'],
         reconnectionAttempts: 5,
